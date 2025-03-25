@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Task } from '@prisma/client';
+import { Task, User } from '@prisma/client';
+import { CreateTaskDto } from 'src/models/task/create-task.dto';
+import { TaskAlreadyExists } from 'src/common';
 
 @Injectable()
 export class TaskService {
@@ -14,10 +16,30 @@ export class TaskService {
     return this.prisma.task.findUnique({ where: { id } });
   }
 
-  async create(data: { title: string; description: string }): Promise<Task> {
-    return this.prisma.task.create({
-      data: { title: data.title, description: data.description, status: false },
+  async create(newTask: CreateTaskDto, user: User): Promise<Task> {
+    const { title, description } = newTask;
+
+    const isTaskExist = await this.prisma.task.findFirst({
+      where: {
+        title,
+        userId: user.id,
+      },
     });
+
+    if (isTaskExist) {
+      throw new TaskAlreadyExists(`Task with title ${title} already exists`);
+    }
+
+    const task = await this.prisma.task.create({
+      data: {
+        title,
+        description: description ?? '',
+        status: false,
+        userId: user.id,
+      },
+    });
+
+    return task;
   }
 
   async update(id: number, data: Partial<Task>): Promise<Task> {

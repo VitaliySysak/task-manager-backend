@@ -1,36 +1,39 @@
+import { randomUUID } from 'crypto';
 import { prisma } from './prisma-client';
-import { hashSync } from "bcrypt";
+import { hashSync } from 'bcrypt';
 
 async function up() {
   await prisma.user.createMany({
     data: [
       {
+        token: randomUUID(),
         fullName: 'User',
         email: 'user@test.com',
-        password: hashSync("qwerty", 10),
+        password: hashSync('qwerty', 10),
       },
       {
+        token: randomUUID(),
         fullName: 'Admin',
         email: 'admin@test.com',
-        password: hashSync("qwerty", 10),
+        password: hashSync('qwerty', 10),
       },
     ],
   });
 
-  await prisma.task.createMany({
-    data: [
-      {
-        title: 'food',
-        description: 'drink coffee',
-        status: false,
-      },
-      {
-        title: 'home',
-        description: 'map the floor',
-        status: true,
-      },
-    ],
-  });
+  // await prisma.task.createMany({
+  //   data: [
+  //     {
+  //       title: 'food',
+  //       description: 'drink coffee',
+  //       status: false,
+  //     },
+  //     {
+  //       title: 'home',
+  //       description: 'map the floor',
+  //       status: true,
+  //     },
+  //   ],
+  // });
 }
 
 async function down() {
