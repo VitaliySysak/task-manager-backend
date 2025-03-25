@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { User } from '@prisma/client';
+import { User, UserRole } from '@prisma/client';
 import { RegisterDto, RegisterResponseDto } from 'src/models/user/register.dto';
 import { LoginDto, LoginResponseDto } from 'src/models/user/login.dto';
 import {
@@ -9,14 +9,19 @@ import {
   WrongPasswordOrEmail,
 } from 'src/common';
 import { compare, hash } from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+  ) {}
 
-  async getAll(password: string): Promise<User[]> {
-    if (password !== process.env.ADMIN_PASSWORD!) {
-      throw new NotAllowed(`Wrong admin password`);
+  // Admin
+  async getAll(user: User): Promise<User[]> {
+    if (user.role !== UserRole.ADMIN) {
+      throw new NotAllowed('Only admins can access this route');
     }
 
     const allUsers = await this.prisma.user.findMany();
@@ -24,6 +29,40 @@ export class UserService {
     return allUsers;
   }
 
+  async adminRegister(body: RegisterDto): Promise<RegisterResponseDto> {
+    const { fullName, email, password } = body;
+
+    const isUserExist = await this.prisma.user.findFirst({
+      where: {
+        email,
+      },
+    });
+
+    if (isUserExist) {
+      throw new UserAlreadyExists(`Admin with email ${email} already exists`);
+    }
+
+    if (password !== process.env.ADMIN_PASSWORD!) {
+      throw new NotAllowed(`Wrong admin password`);
+    }
+
+    const hashedPassword = await hash(password, 10);
+
+    const user = await this.prisma.user.create({
+      data: { fullName, email, password: hashedPassword },
+    });
+
+    const token = this.jwtService.sign({ sub: user.id, email: user.email });
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { token, role: UserRole.ADMIN },
+    });
+
+    return { id: user.id, fullName, email, role: UserRole.ADMIN, token };
+  }
+
+  // User
   async register(newUser: RegisterDto): Promise<RegisterResponseDto> {
     const { fullName, email, password } = newUser;
 
@@ -38,13 +77,19 @@ export class UserService {
     }
 
     const hashedPassword = await hash(password, 10);
-    const token = crypto.randomUUID();
 
     const user = await this.prisma.user.create({
-      data: { fullName, email, token, password: hashedPassword },
+      data: { fullName, email, password: hashedPassword },
     });
 
-    return { id: user.id, fullName, email, token };
+    const token = this.jwtService.sign({ sub: user.id, email: user.email });
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { token },
+    });
+
+    return { id: user.id, fullName, email, role: UserRole.USER, token };
   }
 
   async login(newUser: LoginDto): Promise<LoginResponseDto> {
@@ -60,6 +105,13 @@ export class UserService {
       throw new WrongPasswordOrEmail(`Wrong email or password`);
     }
 
-    return { id: user.id, email, token: user.token };
+    const token = this.jwtService.sign({ sub: user.id, email: user.email });
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { token },
+    });
+
+    return { id: user.id, email, role: UserRole.USER, token };
   }
 }

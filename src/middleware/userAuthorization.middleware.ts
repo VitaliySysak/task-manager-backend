@@ -12,7 +12,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class UserAuthorizationMiddleware implements NestMiddleware {
   constructor(private prisma: PrismaService) {}
 
-  async use(req: Request & { user: User }, next: NextFunction) {
+  async use(req: Request & { user: User }, res: Response, next: NextFunction) {
     const { authorization } = req.headers as { authorization?: string };
 
     if (!authorization) {
@@ -20,7 +20,6 @@ export class UserAuthorizationMiddleware implements NestMiddleware {
         `User do not provide authorization token`,
       );
     }
-
     const user = await this.prisma.user.findFirst({
       where: { token: authorization.replace('Bearer ', '').trim() },
     });

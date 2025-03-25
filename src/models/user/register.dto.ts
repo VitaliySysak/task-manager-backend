@@ -6,20 +6,21 @@ import {
   IsEmail,
   IsNumber,
 } from '@nestjs/class-validator';
+import { UserRole } from '@prisma/client';
 
 export class RegisterDto {
-  @ApiProperty({ type: String })
+  @ApiProperty({ type: String, required: true })
   @IsString()
   @IsNotEmpty()
   fullName: string;
 
-  @ApiProperty({ type: String })
+  @ApiProperty({ type: String, required: true })
   @IsString()
   @IsNotEmpty()
   @IsEmail()
   email: string;
 
-  @ApiProperty({ type: String })
+  @ApiProperty({ type: String, required: true })
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
@@ -27,23 +28,28 @@ export class RegisterDto {
 }
 
 export class RegisterResponseDto {
-  @ApiProperty({ type: Number })
+  @ApiProperty({ type: Number, required: true })
   @IsNumber()
   @IsNotEmpty()
-  id: number
+  id: number;
 
-  @ApiProperty({ type: String })
+  @ApiProperty({ type: String, required: true })
   @IsString()
   @IsNotEmpty()
   fullName: string;
 
-  @ApiProperty({ type: String })
+  @ApiProperty({ type: String, required: true })
   @IsString()
   @IsNotEmpty()
   @IsEmail()
   email: string;
 
-  @ApiProperty({ type: String })
+  @ApiProperty({ type: String, required: true })
+  @IsString()
+  @IsNotEmpty()
+  role: UserRole;
+
+  @ApiProperty({ type: String, required: true })
   @IsString()
   @IsNotEmpty()
   token: string;

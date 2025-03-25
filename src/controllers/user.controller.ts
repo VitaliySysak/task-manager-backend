@@ -14,17 +14,20 @@ import {
   UserAlreadyExists,
   WrongPasswordOrEmail,
 } from 'src/common';
+import { User } from '@prisma/client';
+import { LoginDto } from 'src/models/user/login.dto';
 
 @Controller({ path: '/users' })
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Get('/')
-  async getAll(@Req() req: Request) {
+  // Admin
+  @Get('/all')
+  async getAll(@Req() req: Request & { user: User }) {
     try {
-      const password = req.headers['authorization'].replace('Bearer ', '').trim();
+      const { user } = req;
 
-      const allUsers = await this.userService.getAll(password);
+      const allUsers = await this.userService.getAll(user);
 
       return allUsers;
     } catch (error) {
@@ -36,6 +39,25 @@ export class UserController {
     }
   }
 
+  @Post('/admin/register')
+  async adminRegister(@Body() body: RegisterDto) {
+    try {
+      const allUsers = await this.userService.adminRegister(body);
+
+      return allUsers;
+    } catch (error) {
+      if (error instanceof NotAllowed || error instanceof UserAlreadyExists) {
+        throw new BadRequestException(error.message);
+      }
+      console.error(
+        'Error while execution user.controller/adminRegister:',
+        error,
+      );
+      throw new InternalServerErrorException();
+    }
+  }
+
+  // User
   @Post('/register')
   async register(@Body() body: RegisterDto) {
     try {
@@ -53,7 +75,7 @@ export class UserController {
   }
 
   @Post('/login')
-  async login(@Body() body: RegisterDto) {
+  async login(@Body() body: LoginDto) {
     try {
       const data = await this.userService.login(body);
 

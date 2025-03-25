@@ -1,19 +1,78 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Req } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Task, User } from '@prisma/client';
 import { CreateTaskDto } from 'src/models/task/create-task.dto';
-import { TaskAlreadyExists } from 'src/common';
+import { NotAllowed, TaskAlreadyExists, TaskNotFound } from 'src/common';
+import { TaskStatus } from '@prisma/client';
 
 @Injectable()
 export class TaskService {
   constructor(private prisma: PrismaService) {}
 
-  async getAll(): Promise<Task[]> {
-    return this.prisma.task.findMany();
+  // Admin
+  async getAllUsersTasks(user: User): Promise<Task[]> {
+    if (user.role !== 'ADMIN') {
+      throw new NotAllowed('Only admins can access this route');
+    }
+
+    const allUsersTasks = await this.prisma.task.findMany();
+
+    return allUsersTasks;
   }
 
-  async getOne(id: number): Promise<Task | null> {
-    return this.prisma.task.findUnique({ where: { id } });
+  // User
+  async getAllUserTasks(
+    user: User,
+    status?: TaskStatus,
+    title?: string,
+    description?: string,
+  ): Promise<Task[]> {
+    const { id } = user;
+
+    if (status || title || description) {
+      const filteredUserTasks = await this.prisma.task.findMany({
+        where: {
+          userId: id,
+          ...(status && { status }),
+          ...(title && {
+            title: {
+              contains: title,
+              mode: 'insensitive',
+            },
+          }),
+          ...(description && {
+            description: {
+              contains: description,
+              mode: 'insensitive',
+            },
+          }),
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      return filteredUserTasks;
+    }
+
+    const userTasks = await this.prisma.task.findMany({
+      where: {
+        userId: id,
+      },
+    });
+
+    return userTasks;
+  }
+
+  async getOne(user: User, id: number): Promise<Task> {
+    const getTask = await this.prisma.task.findFirst({
+      where: { userId: user.id, id },
+    });
+
+    if (!getTask) {
+      throw new TaskNotFound(`Task with id ${id} not found`);
+    }
+    return getTask;
   }
 
   async create(newTask: CreateTaskDto, user: User): Promise<Task> {
@@ -34,7 +93,6 @@ export class TaskService {
       data: {
         title,
         description: description ?? '',
-        status: false,
         userId: user.id,
       },
     });
@@ -42,11 +100,23 @@ export class TaskService {
     return task;
   }
 
-  async update(id: number, data: Partial<Task>): Promise<Task> {
-    return this.prisma.task.update({ where: { id }, data });
+  async update(id: number, updateTask: Partial<Task>): Promise<Task> {
+    const task = await this.prisma.task.findFirst({ where: { id } });
+    if (!task) {
+      throw new TaskNotFound(`Task with id ${id} not found`);
+    }
+
+    return this.prisma.task.update({ where: { id }, data: updateTask });
   }
 
   async delete(id: number): Promise<Task> {
-    return this.prisma.task.delete({ where: { id } });
+    const task = await this.prisma.task.findFirst({ where: { id } });
+    if (!task) {
+      throw new TaskNotFound(`Task with id ${id} not found`);
+    }
+
+    const deletedTask = await this.prisma.task.delete({ where: { id } });
+
+    return deletedTask;
   }
 }
