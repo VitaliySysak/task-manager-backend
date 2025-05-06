@@ -1,0 +1,14 @@
+# Ігнорувати тільки зайве
+
+node_modules
+npm-debug.log
+.dockerignore
+.git
+.gitignore
+.vscode
+.next
+.cache
+build
+dist
+README.md
+LICENSE

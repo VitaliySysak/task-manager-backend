@@ -27,41 +27,23 @@ export class TaskService {
     title?: string,
     description?: string,
   ): Promise<Task[]> {
-    const { id } = user;
-
-    if (status || title || description) {
-      const filteredUserTasks = await this.prisma.task.findMany({
-        where: {
-          userId: id,
-          ...(status && { status }),
-          ...(title && {
-            title: {
-              contains: title,
-              mode: 'insensitive',
-            },
-          }),
-          ...(description && {
-            description: {
-              contains: description,
-              mode: 'insensitive',
-            },
-          }),
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      });
-
-      return filteredUserTasks;
-    }
-
-    const userTasks = await this.prisma.task.findMany({
-      where: {
-        userId: id,
+    const where: any = {
+      userId: user.id,
+      ...(status && { status }),
+      ...(title && {
+        title: { contains: title, mode: 'insensitive' },
+      }),
+      ...(description && {
+        description: { contains: description, mode: 'insensitive' },
+      }),
+    };
+  
+    return this.prisma.task.findMany({
+      where,
+      orderBy: {
+        createdAt: 'asc' 
       },
     });
-
-    return userTasks;
   }
 
   async getOne(user: User, id: number): Promise<Task> {
@@ -96,6 +78,7 @@ export class TaskService {
         userId: user.id,
       },
     });
+    console.log('task:', task)
 
     return task;
   }
