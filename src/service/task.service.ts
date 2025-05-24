@@ -7,7 +7,7 @@ import { TaskStatus } from '@prisma/client';
 
 @Injectable()
 export class TaskService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   // Admin
   async getAllUsersTasks(user: User): Promise<Task[]> {
@@ -37,11 +37,11 @@ export class TaskService {
         description: { contains: description, mode: 'insensitive' },
       }),
     };
-  
+
     return this.prisma.task.findMany({
       where,
       orderBy: {
-        createdAt: 'asc' 
+        createdAt: 'asc',
       },
     });
   }
@@ -78,7 +78,7 @@ export class TaskService {
         userId: user.id,
       },
     });
-    console.log('task:', task)
+    console.log('task:', task);
 
     return task;
   }

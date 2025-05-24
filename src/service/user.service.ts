@@ -10,6 +10,7 @@ import {
 } from 'src/common';
 import { compare, hash } from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { TaskService } from './task.service';
 
 @Injectable()
 export class UserService {
@@ -88,6 +89,16 @@ export class UserService {
       where: { id: user.id },
       data: { token },
     });
+
+    const prisma = new PrismaService();
+    const taskService = new TaskService(prisma);
+
+    const initTask = {
+      title: 'new task',
+      description: 'descrioption to a new task',
+    };
+
+    await taskService.create(initTask, user);
 
     return { id: user.id, fullName, email, role: UserRole.USER, token };
   }
