@@ -18,7 +18,6 @@ CMD ["npm", "run", "dev"]
 FROM base AS build
 ENV NODE_ENV=development
 COPY . .
-COPY .env.production .env
 RUN npm install
 RUN npx prisma generate
 RUN npm run build
