@@ -6,6 +6,7 @@ import { UserController } from './controllers/user.controller';
 import { UserService } from './service/user.service';
 import { UserAuthorizationMiddleware } from './middleware/userAuthorization.middleware';
 import { JwtModule } from '@nestjs/jwt';
+import { AppController } from './controllers/app.controller';
 
 @Module({
   imports: [
@@ -15,11 +16,13 @@ import { JwtModule } from '@nestjs/jwt';
       signOptions: { expiresIn: '7d' },
     }),
   ],
-  controllers: [TaskController, UserController],
+  controllers: [TaskController, UserController, AppController],
   providers: [TaskService, UserService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(UserAuthorizationMiddleware).forRoutes('/tasks', "/users/all");
+    consumer
+      .apply(UserAuthorizationMiddleware)
+      .forRoutes('/tasks', '/users/all');
   }
 }
