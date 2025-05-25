@@ -94,8 +94,8 @@ export class UserService {
     const taskService = new TaskService(prisma);
 
     const initTask = {
-      title: 'new task',
-      description: 'descrioption to a new task',
+      title: 'task example',
+      description: 'a little descrioption for this task',
     };
 
     await taskService.create(initTask, user);
