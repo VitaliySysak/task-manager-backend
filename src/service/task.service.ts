@@ -58,7 +58,7 @@ export class TaskService {
   }
 
   async create(newTask: CreateTaskDto, user: User): Promise<Task> {
-    const { title, description } = newTask;
+    const { title, description, status } = newTask;
 
     const isTaskExist = await this.prisma.task.findFirst({
       where: {
@@ -75,10 +75,10 @@ export class TaskService {
       data: {
         title,
         description: description ?? '',
+        status: status ? TaskStatus.DONE : TaskStatus.TODO,
         userId: user.id,
       },
     });
-    console.log('task:', task);
 
     return task;
   }

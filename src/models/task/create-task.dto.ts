@@ -1,9 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsString,
-  IsNotEmpty,
-} from '@nestjs/class-validator';
-import { IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty } from '@nestjs/class-validator';
+import { IsBoolean, IsOptional } from 'class-validator';
 
 export class CreateTaskDto {
   @ApiProperty({ type: String, required: true })
@@ -15,4 +12,9 @@ export class CreateTaskDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @ApiProperty({ type: Boolean })
+  @IsBoolean()
+  @IsOptional()
+  status?: boolean;
 }
