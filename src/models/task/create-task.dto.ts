@@ -16,5 +16,5 @@ export class CreateTaskDto {
   @ApiProperty({ type: Boolean })
   @IsBoolean()
   @IsOptional()
-  status?: boolean;
+  isCompleted?: boolean;
 }
