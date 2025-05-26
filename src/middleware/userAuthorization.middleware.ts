@@ -14,7 +14,7 @@ export class UserAuthorizationMiddleware implements NestMiddleware {
 
   async use(req: Request & { user?: User }, res: Response, next: NextFunction) {
     const authHeader = req.headers['authorization'];
-    const cookieToken = req.cookies?.token;
+    const cookieToken = req.cookies?.['task-manager-auth-token'];
 
     let token: string | undefined;
 
