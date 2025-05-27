@@ -83,7 +83,7 @@ export class TaskService {
     return task;
   }
 
-  async update(id: number, updateTask: Partial<Task>): Promise<Task> {
+  async updateById(id: number, updateTask: Partial<Task>): Promise<Task> {
     const task = await this.prisma.task.findFirst({ where: { id } });
     if (!task) {
       throw new TaskNotFound(`Task with id ${id} not found`);
@@ -92,7 +92,7 @@ export class TaskService {
     return this.prisma.task.update({ where: { id }, data: updateTask });
   }
 
-  async delete(id: number): Promise<Task> {
+  async deleteById(id: number): Promise<Task> {
     const task = await this.prisma.task.findFirst({ where: { id } });
     if (!task) {
       throw new TaskNotFound(`Task with id ${id} not found`);
@@ -101,5 +101,15 @@ export class TaskService {
     const deletedTask = await this.prisma.task.delete({ where: { id } });
 
     return deletedTask;
+  }
+
+  async deleteCompletedByIds(ids: number[]): Promise<{}> {
+    await this.prisma.task.deleteMany({
+      where: {
+        id: { in: ids },
+      },
+    });
+
+    return { status: 'success' };
   }
 }

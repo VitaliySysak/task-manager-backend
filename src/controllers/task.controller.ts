@@ -19,6 +19,7 @@ import { User } from '@prisma/client';
 import { NotAllowed, TaskAlreadyExists, TaskNotFound } from 'src/common';
 import { UpdateTaskDto } from 'src/models/task/update-task.dto';
 import { FindTasksQueryDto } from 'src/models/task/find-task.dto';
+import { DeleteTasksDto } from 'src/models/task/delete-tasks.dto';
 
 @Controller({ path: '/tasks' })
 export class TaskController {
@@ -111,9 +112,9 @@ export class TaskController {
   }
 
   @Put(':id')
-  async update(@Param('id') id: number, @Body() body: UpdateTaskDto) {
+  async updateById(@Param('id') id: number, @Body() body: UpdateTaskDto) {
     try {
-      const updatedTask = await this.taskService.update(Number(id), body);
+      const updatedTask = await this.taskService.updateById(Number(id), body);
 
       return updatedTask;
     } catch (error) {
@@ -126,9 +127,9 @@ export class TaskController {
   }
 
   @Delete(':id')
-  async delete(@Param('id') id: number) {
+  async deleteById(@Param('id') id: number) {
     try {
-      const deletedTask = await this.taskService.delete(Number(id));
+      const deletedTask = await this.taskService.deleteById(Number(id));
 
       return deletedTask;
     } catch (error) {
@@ -136,6 +137,18 @@ export class TaskController {
         throw new NotFoundException(error.message);
       }
       console.error('Error while execution task.controller/delete:', error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  @Post('/delete-many')
+  async deleteCompletedByIds(@Body() body: DeleteTasksDto) {
+    try {
+      const { ids } = body;
+      const status = await this.taskService.deleteCompletedByIds(ids);
+      return status;
+    } catch (error) {
+      console.error('Error while execution deleteCompletedByIds:', error);
       throw new InternalServerErrorException();
     }
   }
