@@ -53,9 +53,10 @@ export class UserController {
       res.cookie('refreshToken', data.refreshToken, {
         httpOnly: true,
         secure: true,
-        sameSite: "strict",
+        sameSite: "lax",
         path: '/users/refresh',
         maxAge: 1000 * 60 * 60 * 24 * 7,
+        domain: 'task-manager.space',
       });
 
       const { refreshToken, ...rest } = data;
@@ -86,9 +87,10 @@ export class UserController {
       res.cookie('refreshToken', data.refreshToken, {
         httpOnly: true,
         secure: true,
-        sameSite: "strict",
+        sameSite: "lax",
         path: '/users/refresh',
         maxAge: 1000 * 60 * 60 * 24 * 7,
+        domain: 'task-manager.space',
       });
 
       const { refreshToken, ...rest } = data;
@@ -116,9 +118,10 @@ export class UserController {
       res.cookie('refreshToken', data.refreshToken, {
         httpOnly: true,
         secure: true,
-        sameSite: "strict",
+        sameSite: "lax",
         path: '/users/refresh',
         maxAge: 1000 * 60 * 60 * 24 * 7,
+        domain: 'task-manager.space',
       });
 
       const { refreshToken, ...rest } = data;
@@ -149,9 +152,10 @@ export class UserController {
     res.cookie('refreshToken', data.refreshToken, {
       httpOnly: true,
       secure: true,
-      sameSite: "strict",
+      sameSite: "lax",
       path: '/users/refresh',
       maxAge: 1000 * 60 * 60 * 24 * 7,
+      domain: 'task-manager.space',
     });
 
     const { refreshToken, ...rest } = data;
