@@ -54,7 +54,7 @@ export class UserController {
         httpOnly: true,
         secure: true,
         sameSite: "lax",
-        path: '/users/refresh',
+        path: '/api/users/refresh',
         maxAge: 1000 * 60 * 60 * 24 * 7,
         domain: 'task-manager.space',
       });
@@ -88,7 +88,7 @@ export class UserController {
         httpOnly: true,
         secure: true,
         sameSite: "lax",
-        path: '/users/refresh',
+        path: '/api/users/refresh',
         maxAge: 1000 * 60 * 60 * 24 * 7,
         domain: 'task-manager.space',
       });
@@ -119,7 +119,7 @@ export class UserController {
         httpOnly: true,
         secure: true,
         sameSite: "lax",
-        path: '/users/refresh',
+        path: '/api/users/refresh',
         maxAge: 1000 * 60 * 60 * 24 * 7,
         domain: 'task-manager.space',
       });
@@ -153,7 +153,7 @@ export class UserController {
       httpOnly: true,
       secure: true,
       sameSite: "lax",
-      path: '/users/refresh',
+      path: '/api/users/refresh',
       maxAge: 1000 * 60 * 60 * 24 * 7,
       domain: 'task-manager.space',
     });
