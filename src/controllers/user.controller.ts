@@ -156,9 +156,9 @@ export class UserController {
       httpOnly: true,
       secure: isProd,
       sameSite: 'lax',
-      path: DOMAIN_NAME + '/users/refresh',
+      path: BACKEND_ROUTE + '/users/refresh',
       maxAge: 1000 * 60 * 60 * 24 * 7,
-      domain: BACKEND_ROUTE,
+      domain: DOMAIN_NAME,
     });
 
     const { refreshToken, ...rest } = data;
@@ -172,8 +172,8 @@ export class UserController {
       httpOnly: true,
       secure: isProd,
       sameSite: 'lax',
-      path: DOMAIN_NAME + '/users/refresh',
-      domain: BACKEND_ROUTE,
+      path: BACKEND_ROUTE + '/users/refresh',
+      domain: DOMAIN_NAME,
     });
     return { message: 'Logged out successfully' };
   }
