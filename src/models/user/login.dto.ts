@@ -38,9 +38,15 @@ export class LoginResponseDto {
   @IsString()
   @IsNotEmpty()
   role: UserRole;
-
+  
   @ApiProperty({ type: String, required: true })
   @IsString()
   @IsNotEmpty()
-  token: string;
+  refreshToken: string;
+  
+  @ApiProperty({ type: String, required: true })
+  @IsString()
+  @IsNotEmpty()
+  accessToken: string;
+
 }

@@ -1,46 +1,43 @@
 import {
-  BadRequestException,
   Injectable,
   NestMiddleware,
   UnauthorizedException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import { Request, Response, NextFunction } from 'express';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class UserAuthorizationMiddleware implements NestMiddleware {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+  ) {}
 
   async use(req: Request & { user?: User }, res: Response, next: NextFunction) {
     const authHeader = req.headers['authorization'];
-    const cookieToken = req.cookies?.['task-manager-auth-token'];
 
-    let token: string | undefined;
-
-    if (authHeader?.startsWith('Bearer ')) {
-      token = authHeader.replace('Bearer ', '').trim();
-    } else if (cookieToken) {
-      token = cookieToken.trim();
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new UnauthorizedException('No access token provided');
     }
 
-    if (!token) {
-      throw new UnauthorizedException(
-        'No authorization token provided (neither in header nor cookies)',
-      );
+    const accessToken = authHeader.replace('Bearer ', '').trim();
+
+    try {
+      const decoded = this.jwtService.verify(accessToken);
+      const user = await this.prisma.user.findUnique({
+        where: { id: decoded.sub },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      req.user = user;
+      next();
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired access token');
     }
-
-    const user = await this.prisma.user.findFirst({
-      where: { token },
-    });
-
-    if (!user) {
-      throw new BadRequestException(
-        'User with the provided token was not found',
-      );
-    }
-
-    req.user = user;
-    next();
   }
 }

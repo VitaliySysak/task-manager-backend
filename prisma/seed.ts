@@ -6,13 +6,13 @@ async function up() {
   await prisma.user.createMany({
     data: [
       {
-        token: randomUUID(),
+        accessToken : randomUUID(),
         fullName: 'User',
         email: 'user@test.com',
         password: hashSync('qwerty', 10),
       },
       {
-        token: randomUUID(),
+        accessToken: randomUUID(),
         fullName: 'Admin',
         email: 'admin@test.com',
         password: hashSync('qwerty', 10),

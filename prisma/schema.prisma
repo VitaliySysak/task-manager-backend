@@ -3,35 +3,44 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   url       = env("POSTGRES_URL")
   directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
 model User {
-  id               Int               @id @default(autoincrement())
-  fullName         String
-  email            String            @unique
-  password         String
-  token            String?
-  role             UserRole          @default(USER)
-  verified         DateTime?
+  id       Int       @id @default(autoincrement())
+  fullName String
+  email    String    @unique
+  password String
+  role     UserRole  @default(USER)
+  verified DateTime?
 
-  tasks            Task[] 
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  tasks    Task[]
+  sessions UserSession[]
+}
+
+model UserSession {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  refreshToken String   @unique
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+  userAgent    String?
+  ipAddress    String?
 }
 
 model Task {
-  id               Int               @id @default(autoincrement())
-  title            String            
-  description      String
-  status           TaskStatus        @default(TODO)
+  id          Int        @id @default(autoincrement())
+  title       String
+  description String
+  status      TaskStatus @default(TODO)
 
-  userId           Int       
-  user             User              @relation(fields: [userId], references: [id])
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum UserRole {

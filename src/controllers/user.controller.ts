@@ -6,6 +6,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
   Req,
+  Res,
 } from '@nestjs/common';
 import { UserService } from '../service/user.service';
 import { RegisterDto } from 'src/models/user/register.dto';
@@ -16,6 +17,7 @@ import {
 } from 'src/common';
 import { User } from '@prisma/client';
 import { LoginDto } from 'src/models/user/login.dto';
+import { Request, Response } from 'express';
 
 @Controller({ path: '/users' })
 export class UserController {
@@ -40,11 +42,25 @@ export class UserController {
   }
 
   @Post('/admin/register')
-  async adminRegister(@Body() body: RegisterDto) {
+  async adminRegister(
+    @Body() body: RegisterDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     try {
-      const allUsers = await this.userService.adminRegister(body);
+      const data = await this.userService.adminRegister(body, req);
 
-      return allUsers;
+      res.cookie('refreshToken', data.refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+        path: '/users/refresh',
+        maxAge: 1000 * 60 * 60 * 24 * 7,
+      });
+
+      const { refreshToken, ...rest } = data;
+
+      return rest;
     } catch (error) {
       if (error instanceof NotAllowed || error instanceof UserAlreadyExists) {
         throw new BadRequestException(error.message);
@@ -59,11 +75,25 @@ export class UserController {
 
   // User
   @Post('/register')
-  async register(@Body() body: RegisterDto) {
+  async register(
+    @Body() body: RegisterDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     try {
-      const data = await this.userService.register(body);
+      const data = await this.userService.register(body, req);
 
-      return data;
+      res.cookie('refreshToken', data.refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+        path: '/users/refresh',
+        maxAge: 1000 * 60 * 60 * 24 * 7,
+      });
+
+      const { refreshToken, ...rest } = data;
+
+      return rest;
     } catch (error) {
       if (error instanceof UserAlreadyExists) {
         throw new BadRequestException(error.message);
@@ -75,18 +105,57 @@ export class UserController {
   }
 
   @Post('/login')
-  async login(@Body() body: LoginDto) {
+  async login(
+    @Body() body: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     try {
-      const data = await this.userService.login(body);
+      const data = await this.userService.login(body, req);
 
-      return data;
+      res.cookie('refreshToken', data.refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+        path: '/users/refresh',
+        maxAge: 1000 * 60 * 60 * 24 * 7,
+      });
+
+      const { refreshToken, ...rest } = data;
+
+      return rest;
     } catch (error) {
       if (error instanceof WrongPasswordOrEmail) {
+        throw new BadRequestException(error.message);
+      } else if (error instanceof BadRequestException) {
         throw new BadRequestException(error.message);
       } else {
         console.error('Error while execution user.controller/login:', error);
         throw new InternalServerErrorException();
       }
     }
+  }
+
+  @Post('/refresh')
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const token = req.cookies['refreshToken'];
+    if (!token) throw new BadRequestException('No refreshToken in cookies');
+
+    const data = await this.userService.refresh(token);
+
+    res.cookie('refreshToken', data.refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      path: '/users/refresh',
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+    });
+
+    const { refreshToken, ...rest } = data;
+
+    return rest;
   }
 }

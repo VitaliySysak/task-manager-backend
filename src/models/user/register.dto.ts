@@ -48,9 +48,15 @@ export class RegisterResponseDto {
   @IsString()
   @IsNotEmpty()
   role: UserRole;
+  
+  @ApiProperty({ type: String, required: true })
+  @IsString()
+  @IsNotEmpty()
+  refreshToken: string;
 
   @ApiProperty({ type: String, required: true })
   @IsString()
   @IsNotEmpty()
-  token: string;
+  accessToken: string;
+
 }
