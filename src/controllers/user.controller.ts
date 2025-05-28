@@ -19,6 +19,9 @@ import { User } from '@prisma/client';
 import { LoginDto } from 'src/models/user/login.dto';
 import { Request, Response } from 'express';
 
+const { BACKEND_ROUTE, DOMAIN_NAME } = process.env;
+const isProd = process.env.NODE_ENV === 'production';
+
 @Controller({ path: '/users' })
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -52,11 +55,11 @@ export class UserController {
 
       res.cookie('refreshToken', data.refreshToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: "lax",
-        path: '/api/users/refresh',
+        secure: isProd,
+        sameSite: 'lax',
+        path: BACKEND_ROUTE + '/users/refresh',
         maxAge: 1000 * 60 * 60 * 24 * 7,
-        domain: 'task-manager.space',
+        domain: DOMAIN_NAME,
       });
 
       const { refreshToken, ...rest } = data;
@@ -86,11 +89,11 @@ export class UserController {
 
       res.cookie('refreshToken', data.refreshToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: "lax",
-        path: '/api/users/refresh',
+        secure: isProd,
+        sameSite: 'lax',
+        path: BACKEND_ROUTE + '/users/refresh',
         maxAge: 1000 * 60 * 60 * 24 * 7,
-        domain: 'task-manager.space',
+        domain: DOMAIN_NAME,
       });
 
       const { refreshToken, ...rest } = data;
@@ -117,11 +120,11 @@ export class UserController {
 
       res.cookie('refreshToken', data.refreshToken, {
         httpOnly: true,
-        secure: true,
-        sameSite: "lax",
-        path: '/api/users/refresh',
+        secure: isProd,
+        sameSite: 'lax',
+        path: BACKEND_ROUTE + '/users/refresh',
         maxAge: 1000 * 60 * 60 * 24 * 7,
-        domain: 'task-manager.space',
+        domain: DOMAIN_NAME,
       });
 
       const { refreshToken, ...rest } = data;
@@ -151,15 +154,27 @@ export class UserController {
 
     res.cookie('refreshToken', data.refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      path: '/api/users/refresh',
+      secure: isProd,
+      sameSite: 'lax',
+      path: DOMAIN_NAME + '/users/refresh',
       maxAge: 1000 * 60 * 60 * 24 * 7,
-      domain: 'task-manager.space',
+      domain: BACKEND_ROUTE,
     });
 
     const { refreshToken, ...rest } = data;
 
     return rest;
+  }
+
+  @Post('/logout')
+  async logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'lax',
+      path: DOMAIN_NAME + '/users/refresh',
+      domain: BACKEND_ROUTE,
+    });
+    return { message: 'Logged out successfully' };
   }
 }
