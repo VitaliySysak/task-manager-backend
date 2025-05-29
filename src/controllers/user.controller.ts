@@ -19,8 +19,24 @@ import { User } from '@prisma/client';
 import { LoginDto } from 'src/models/user/login.dto';
 import { Request, Response } from 'express';
 
-const { BACKEND_ROUTE, DOMAIN_NAME } = process.env;
+const { BACKEND_ROUTE, DOMAIN_NAME, TOKEN_NAME } = process.env;
 const isProd = process.env.NODE_ENV === 'production';
+
+interface cookieOptions {
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: boolean | 'lax' | 'strict' | 'none' | undefined;
+  maxAge: number;
+  path?: string;
+  domain?: string;
+}
+
+const cookieOptions: cookieOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: 'lax',
+  maxAge: 1000 * 60 * 60 * 24 * 7,
+};
 
 @Controller({ path: '/users' })
 export class UserController {
@@ -53,14 +69,12 @@ export class UserController {
     try {
       const data = await this.userService.adminRegister(body, req);
 
-      res.cookie('refreshToken', data.refreshToken, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: 'lax',
-        path: BACKEND_ROUTE + '/users/refresh',
-        maxAge: 1000 * 60 * 60 * 24 * 7,
-        domain: DOMAIN_NAME,
-      });
+      if (isProd) {
+        cookieOptions.domain = DOMAIN_NAME;
+      }
+      cookieOptions.path = BACKEND_ROUTE + '/users/register';
+
+      res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
 
       const { refreshToken, ...rest } = data;
 
@@ -87,14 +101,12 @@ export class UserController {
     try {
       const data = await this.userService.register(body, req);
 
-      res.cookie('refreshToken', data.refreshToken, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: 'lax',
-        path: BACKEND_ROUTE + '/users/refresh',
-        maxAge: 1000 * 60 * 60 * 24 * 7,
-        domain: DOMAIN_NAME,
-      });
+      if (isProd) {
+        cookieOptions.domain = DOMAIN_NAME;
+      }
+      cookieOptions.path = BACKEND_ROUTE + '/users/register';
+
+      res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
 
       const { refreshToken, ...rest } = data;
 
@@ -118,14 +130,12 @@ export class UserController {
     try {
       const data = await this.userService.login(body, req);
 
-      res.cookie('refreshToken', data.refreshToken, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: 'lax',
-        path: BACKEND_ROUTE + '/users/refresh',
-        maxAge: 1000 * 60 * 60 * 24 * 7,
-        domain: DOMAIN_NAME,
-      });
+      if (isProd) {
+        cookieOptions.domain = DOMAIN_NAME;
+      }
+      cookieOptions.path = BACKEND_ROUTE + '/users/login';
+
+      res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
 
       const { refreshToken, ...rest } = data;
 
@@ -147,19 +157,17 @@ export class UserController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const token = req.cookies['refreshToken'];
-    if (!token) throw new BadRequestException('No refreshToken in cookies');
+    const token = req.cookies[TOKEN_NAME!];
+    if (!token) throw new BadRequestException('No refresh token in cookies');
 
     const data = await this.userService.refresh(token);
 
-    res.cookie('refreshToken', data.refreshToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'lax',
-      path: BACKEND_ROUTE + '/users/refresh',
-      maxAge: 1000 * 60 * 60 * 24 * 7,
-      domain: DOMAIN_NAME,
-    });
+    if (isProd) {
+      cookieOptions.domain = DOMAIN_NAME;
+    }
+    cookieOptions.path = BACKEND_ROUTE + '/users/refresh';
+
+    res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
 
     const { refreshToken, ...rest } = data;
 
@@ -168,13 +176,13 @@ export class UserController {
 
   @Post('/logout')
   async logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'lax',
-      path: BACKEND_ROUTE + '/users/refresh',
-      domain: DOMAIN_NAME,
-    });
+    if (isProd) {
+      cookieOptions.domain = DOMAIN_NAME;
+    }
+    cookieOptions.path = BACKEND_ROUTE + '/users/logout';
+
+    res.clearCookie(TOKEN_NAME!, cookieOptions);
+
     return { message: 'Logged out successfully' };
   }
 }
