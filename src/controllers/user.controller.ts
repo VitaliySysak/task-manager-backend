@@ -158,6 +158,9 @@ export class UserController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const token = req.cookies[TOKEN_NAME!];
+    console.log({ token });
+    console.log({ TOKEN_NAME });
+
     if (!token) throw new BadRequestException('No refresh token in cookies');
 
     const data = await this.userService.refresh(token);
