@@ -36,7 +36,7 @@ const cookieOptions: cookieOptions = {
   secure: isProd,
   sameSite: 'lax',
   maxAge: 1000 * 60 * 60 * 24 * 7,
-  path: '/',
+  path: BACKEND_ROUTE,
   domain: isProd ? DOMAIN_NAME : undefined,
 };
 
@@ -145,8 +145,6 @@ export class UserController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const token = req.cookies[TOKEN_NAME!];
-    console.log({ token });
-    console.log({ TOKEN_NAME });
 
     if (!token) throw new BadRequestException('No refresh token in cookies');
 
