@@ -36,6 +36,8 @@ const cookieOptions: cookieOptions = {
   secure: isProd,
   sameSite: 'lax',
   maxAge: 1000 * 60 * 60 * 24 * 7,
+  path: '/',
+  domain: isProd ? DOMAIN_NAME : undefined,
 };
 
 @Controller({ path: '/users' })
@@ -69,11 +71,6 @@ export class UserController {
     try {
       const data = await this.userService.adminRegister(body, req);
 
-      if (isProd) {
-        cookieOptions.domain = DOMAIN_NAME;
-      }
-      cookieOptions.path = BACKEND_ROUTE + '/users/register';
-
       res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
 
       const { refreshToken, ...rest } = data;
@@ -101,11 +98,6 @@ export class UserController {
     try {
       const data = await this.userService.register(body, req);
 
-      if (isProd) {
-        cookieOptions.domain = DOMAIN_NAME;
-      }
-      cookieOptions.path = BACKEND_ROUTE + '/users/register';
-
       res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
 
       const { refreshToken, ...rest } = data;
@@ -129,11 +121,6 @@ export class UserController {
   ) {
     try {
       const data = await this.userService.login(body, req);
-
-      if (isProd) {
-        cookieOptions.domain = DOMAIN_NAME;
-      }
-      cookieOptions.path = BACKEND_ROUTE + '/users/login';
 
       res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
 
@@ -165,11 +152,6 @@ export class UserController {
 
     const data = await this.userService.refresh(token);
 
-    if (isProd) {
-      cookieOptions.domain = DOMAIN_NAME;
-    }
-    cookieOptions.path = BACKEND_ROUTE + '/users/refresh';
-
     res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
 
     const { refreshToken, ...rest } = data;
@@ -179,11 +161,6 @@ export class UserController {
 
   @Post('/logout')
   async logout(@Res({ passthrough: true }) res: Response) {
-    if (isProd) {
-      cookieOptions.domain = DOMAIN_NAME;
-    }
-    cookieOptions.path = BACKEND_ROUTE + '/users/logout';
-
     res.clearCookie(TOKEN_NAME!, cookieOptions);
 
     return { message: 'Logged out successfully' };
