@@ -18,25 +18,17 @@ import {
 import { User } from '@prisma/client';
 import { LoginDto } from 'src/models/user/login.dto';
 import { Request, Response } from 'express';
+import { cookieOptions } from 'types/cookies.dto';
 
 const { BACKEND_ROUTE, DOMAIN_NAME, TOKEN_NAME } = process.env;
 const isProd = process.env.NODE_ENV === 'production';
-
-interface cookieOptions {
-  httpOnly: boolean;
-  secure: boolean;
-  sameSite: boolean | 'lax' | 'strict' | 'none' | undefined;
-  maxAge: number;
-  path?: string;
-  domain?: string;
-}
 
 const cookieOptions: cookieOptions = {
   httpOnly: true,
   secure: isProd,
   sameSite: 'lax',
   maxAge: 1000 * 60 * 60 * 24 * 7,
-  path: BACKEND_ROUTE,
+  path: BACKEND_ROUTE + '/',
   domain: isProd ? DOMAIN_NAME : undefined,
 };
 
