@@ -10,18 +10,22 @@ import {
 } from '@nestjs/common';
 import { UserService } from '../service/user.service';
 import { RegisterDto } from 'src/models/user/register.dto';
-import {
-  NotAllowed,
-  UserAlreadyExists,
-  WrongPasswordOrEmail,
-} from 'src/common';
+import { NotAllowed, UserAlreadyExists, WrongPasswordOrEmail } from 'src/common';
 import { User } from '@prisma/client';
 import { LoginDto } from 'src/models/user/login.dto';
 import { Request, Response } from 'express';
-import { cookieOptions } from 'types/cookies.dto';
 
 const { BACKEND_ROUTE, DOMAIN_NAME, TOKEN_NAME } = process.env;
 const isProd = process.env.NODE_ENV === 'production';
+
+export interface cookieOptions {
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: boolean | 'lax' | 'strict' | 'none' | undefined;
+  maxAge: number;
+  path?: string;
+  domain?: string;
+}
 
 const cookieOptions: cookieOptions = {
   httpOnly: true,
@@ -72,21 +76,14 @@ export class UserController {
       if (error instanceof NotAllowed || error instanceof UserAlreadyExists) {
         throw new BadRequestException(error.message);
       }
-      console.error(
-        'Error while execution user.controller/adminRegister:',
-        error,
-      );
+      console.error('Error while execution user.controller/adminRegister:', error);
       throw new InternalServerErrorException();
     }
   }
 
   // User
   @Post('/register')
-  async register(
-    @Body() body: RegisterDto,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async register(@Body() body: RegisterDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     try {
       const data = await this.userService.register(body, req);
 
@@ -106,11 +103,7 @@ export class UserController {
   }
 
   @Post('/login')
-  async login(
-    @Body() body: LoginDto,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async login(@Body() body: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     try {
       const data = await this.userService.login(body, req);
 
@@ -132,10 +125,7 @@ export class UserController {
   }
 
   @Post('/refresh')
-  async refresh(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const token = req.cookies[TOKEN_NAME!];
 
     if (!token) throw new BadRequestException('No refresh token in cookies');
