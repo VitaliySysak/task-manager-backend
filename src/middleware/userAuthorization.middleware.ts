@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NestMiddleware,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import { Request, Response, NextFunction } from 'express';
@@ -16,7 +12,7 @@ export class UserAuthorizationMiddleware implements NestMiddleware {
   ) {}
 
   async use(req: Request & { user?: User }, res: Response, next: NextFunction) {
-    const authHeader = req.headers['authorization'];
+    const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
       throw new UnauthorizedException('No access token provided');

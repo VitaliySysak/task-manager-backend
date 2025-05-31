@@ -12,6 +12,7 @@ import {
   NotFoundException,
   ConflictException,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { TaskService } from '../service/task.service';
 import { CreateTaskDto } from 'src/models/task/create-task.dto';
@@ -74,11 +75,14 @@ export class TaskController {
   }
 
   @Get(':id')
-  async getOne(@Param('id') id: string, @Req() req: Request & { user: User }) {
+  async getOne(
+    @Param('id', ParseIntPipe) id,
+    @Req() req: Request & { user: User },
+  ) {
     try {
       const { user } = req;
 
-      const getTask = await this.taskService.getOne(user, Number(id));
+      const getTask = await this.taskService.getOne(user, id);
 
       return getTask;
     } catch (error) {
@@ -112,9 +116,9 @@ export class TaskController {
   }
 
   @Put(':id')
-  async updateById(@Param('id') id: number, @Body() body: UpdateTaskDto) {
+  async updateById(@Param('id', ParseIntPipe) id, @Body() body: UpdateTaskDto) {
     try {
-      const updatedTask = await this.taskService.updateById(Number(id), body);
+      const updatedTask = await this.taskService.updateById(id, body);
 
       return updatedTask;
     } catch (error) {
@@ -127,9 +131,9 @@ export class TaskController {
   }
 
   @Delete(':id')
-  async deleteById(@Param('id') id: number) {
+  async deleteById(@Param('id', ParseIntPipe) id) {
     try {
-      const deletedTask = await this.taskService.deleteById(Number(id));
+      const deletedTask = await this.taskService.deleteById(id);
 
       return deletedTask;
     } catch (error) {
