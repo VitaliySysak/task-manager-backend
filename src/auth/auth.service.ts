@@ -12,6 +12,9 @@ import { TaskService } from 'src/task/task.service';
 const { COOKIE_EXPIRE_MS } = process.env;
 const cookieExpTime = parseInt(COOKIE_EXPIRE_MS!);
 
+const exp = process.env.JWT_REFRESH_EXPIRE_IN
+console.log({exp})
+
 @Injectable()
 export class AuthService {
   constructor(
