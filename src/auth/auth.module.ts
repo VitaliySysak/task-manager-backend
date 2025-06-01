@@ -10,9 +10,6 @@ import { AuthService } from './auth.service';
     PrismaModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET!,
-      signOptions: {
-        expiresIn: process.env.JWT_ACCESS_EXPIRE_IN,
-      },
     }),
     TaskModule,
   ],

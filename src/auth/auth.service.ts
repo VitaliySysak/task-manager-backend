@@ -12,9 +12,6 @@ import { TaskService } from 'src/task/task.service';
 const { COOKIE_EXPIRE_MS } = process.env;
 const cookieExpTime = parseInt(COOKIE_EXPIRE_MS!);
 
-const exp = process.env.JWT_REFRESH_EXPIRE_IN
-console.log({exp})
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -48,9 +45,12 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(
       { sub: user.id },
-      { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN },
+      { expiresIn: process.env.JWT_ACCESS_EXPIRE_IN || '7d' },
     );
-    const refreshToken = this.jwtService.sign({ sub: user.id });
+    const refreshToken = this.jwtService.sign(
+      { sub: user.id },
+      { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN || '2h' },
+    );
 
     await this.prisma.userSession.create({
       data: {
@@ -103,9 +103,12 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(
       { sub: user.id },
-      { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN },
+      { expiresIn: process.env.JWT_ACCESS_EXPIRE_IN || '7d' },
     );
-    const refreshToken = this.jwtService.sign({ sub: user.id });
+    const refreshToken = this.jwtService.sign(
+      { sub: user.id },
+      { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN || '2h' },
+    );
 
     await this.prisma.userSession.create({
       data: {
@@ -147,9 +150,12 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(
       { sub: user.id },
-      { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN },
+      { expiresIn: process.env.JWT_ACCESS_EXPIRE_IN || '7d' },
     );
-    const refreshToken = this.jwtService.sign({ sub: user.id });
+    const refreshToken = this.jwtService.sign(
+      { sub: user.id },
+      { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN || '2h' },
+    );
 
     await this.prisma.userSession.create({
       data: {
@@ -187,9 +193,12 @@ export class AuthService {
 
       const newAccessToken = this.jwtService.sign(
         { sub: user.id },
-        { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN },
+        { expiresIn: process.env.JWT_ACCESS_EXPIRE_IN || '7d' },
       );
-      const newRefreshToken = this.jwtService.sign({ sub: user.id });
+      const newRefreshToken = this.jwtService.sign(
+        { sub: user.id },
+        { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN || '2h' },
+      );
 
       await this.prisma.userSession.update({
         where: { refreshToken },
