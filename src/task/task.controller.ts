@@ -14,13 +14,13 @@ import {
   Query,
   ParseIntPipe,
 } from '@nestjs/common';
-import { TaskService } from '../service/task.service';
-import { CreateTaskDto } from 'src/models/task/create-task.dto';
+import { TaskService } from '../task/task.service';
+import { CreateTaskDto } from 'src/task/dto/create-task.dto';
 import { User } from '@prisma/client';
 import { NotAllowed, TaskAlreadyExists, TaskNotFound } from 'src/common';
-import { UpdateTaskDto } from 'src/models/task/update-task.dto';
-import { FindTasksQueryDto } from 'src/models/task/find-task.dto';
-import { DeleteTasksDto } from 'src/models/task/delete-tasks.dto';
+import { UpdateTaskDto } from 'src/task/dto/update-task.dto';
+import { FindTasksQueryDto } from 'src/task/dto/find-task.dto';
+import { DeleteTasksDto } from 'src/task/dto/delete-tasks.dto';
 
 @Controller({ path: '/tasks' })
 export class TaskController {
@@ -39,46 +39,28 @@ export class TaskController {
       if (error instanceof NotAllowed) {
         throw new BadRequestException(error.message);
       }
-      console.error(
-        'Error while execution task.controller/getAllUsersTasks:',
-        error,
-      );
+      console.error('Error while execution task.controller/getAllUsersTasks:', error);
       throw new InternalServerErrorException();
     }
   }
 
-  // User
   @Get('/')
-  async getAllUserTasks(
-    @Req() req: Request & { user: User },
-    @Query() query: FindTasksQueryDto,
-  ) {
+  async getAllUserTasks(@Req() req: Request & { user: User }, @Query() query: FindTasksQueryDto) {
     try {
       const { user } = req;
       const { title, description, status } = query;
 
-      const allUserTasks = await this.taskService.getAllUserTasks(
-        user,
-        status,
-        title,
-        description,
-      );
+      const allUserTasks = await this.taskService.getAllUserTasks(user, status, title, description);
 
       return allUserTasks;
     } catch (error) {
-      console.error(
-        'Error while execution task.controller/getAllUserTasks:',
-        error,
-      );
+      console.error('Error while execution task.controller/getAllUserTasks:', error);
       throw new InternalServerErrorException();
     }
   }
 
   @Get(':id')
-  async getOne(
-    @Param('id', ParseIntPipe) id,
-    @Req() req: Request & { user: User },
-  ) {
+  async getOne(@Param('id', ParseIntPipe) id, @Req() req: Request & { user: User }) {
     try {
       const { user } = req;
 
@@ -95,10 +77,7 @@ export class TaskController {
   }
 
   @Post('/')
-  async create(
-    @Body() body: CreateTaskDto,
-    @Req() req: Request & { user: User },
-  ) {
+  async create(@Body() body: CreateTaskDto, @Req() req: Request & { user: User }) {
     try {
       const { user } = req;
 

@@ -1,6 +1,5 @@
 import {
   Controller,
-  Get,
   Post,
   Body,
   BadRequestException,
@@ -8,14 +7,14 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import { UserService } from '../service/user.service';
-import { RegisterDto } from 'src/models/user/register.dto';
+import { AuthService } from './auth.service';
+import { RegisterDto } from 'src/auth/dto/register.dto';
 import { NotAllowed, UserAlreadyExists, WrongPasswordOrEmail } from 'src/common';
-import { User } from '@prisma/client';
-import { LoginDto } from 'src/models/user/login.dto';
+import { LoginDto } from 'src/auth/dto/login.dto';
 import { Request, Response } from 'express';
 
-const { BACKEND_ROUTE, DOMAIN_NAME, TOKEN_NAME } = process.env;
+const { BACKEND_ROUTE, DOMAIN_NAME, TOKEN_NAME, COOKIE_EXPIRE_MS } = process.env;
+const cookieExpTime = parseInt(COOKIE_EXPIRE_MS!);
 const isProd = process.env.NODE_ENV === 'production';
 
 export interface cookieOptions {
@@ -31,32 +30,14 @@ const cookieOptions: cookieOptions = {
   httpOnly: true,
   secure: isProd,
   sameSite: 'lax',
-  maxAge: 1000 * 60 * 60 * 24 * 7,
+  maxAge: cookieExpTime,
   path: BACKEND_ROUTE + '/',
   domain: isProd ? DOMAIN_NAME : undefined,
 };
 
-@Controller({ path: '/users' })
-export class UserController {
-  constructor(private readonly userService: UserService) {}
-
-  // Admin
-  @Get('/all')
-  async getAll(@Req() req: Request & { user: User }) {
-    try {
-      const { user } = req;
-
-      const allUsers = await this.userService.getAll(user);
-
-      return allUsers;
-    } catch (error) {
-      if (error instanceof NotAllowed) {
-        throw new BadRequestException(error.message);
-      }
-      console.error('Error while execution user.controller/getAll:', error);
-      throw new InternalServerErrorException();
-    }
-  }
+@Controller({ path: '/auth' })
+export class AuthController {
+  constructor(private readonly userService: AuthService) {}
 
   @Post('/admin/register')
   async adminRegister(
@@ -81,17 +62,15 @@ export class UserController {
     }
   }
 
-  // User
   @Post('/register')
   async register(@Body() body: RegisterDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     try {
       const data = await this.userService.register(body, req);
+      const { refreshToken, accessToken } = data;
 
-      res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
+      res.cookie(TOKEN_NAME!, refreshToken, cookieOptions);
 
-      const { refreshToken, ...rest } = data;
-
-      return rest;
+      return { accessToken };
     } catch (error) {
       if (error instanceof UserAlreadyExists) {
         throw new BadRequestException(error.message);
@@ -124,6 +103,13 @@ export class UserController {
     }
   }
 
+  @Post('/logout')
+  async logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie(TOKEN_NAME!, cookieOptions);
+
+    return { message: 'Logged out successfully' };
+  }
+
   @Post('/refresh')
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const token = req.cookies[TOKEN_NAME!];
@@ -134,15 +120,8 @@ export class UserController {
 
     res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
 
-    const { refreshToken, ...rest } = data;
+    const { accessToken } = data;
 
-    return rest;
-  }
-
-  @Post('/logout')
-  async logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie(TOKEN_NAME!, cookieOptions);
-
-    return { message: 'Logged out successfully' };
+    return { accessToken };
   }
 }

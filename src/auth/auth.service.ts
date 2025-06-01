@@ -1,41 +1,26 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { User, UserRole } from '@prisma/client';
-import { RegisterDto, RegisterResponseDto } from 'src/models/user/register.dto';
-import { LoginDto, LoginResponseDto } from 'src/models/user/login.dto';
-import {
-  NotAllowed,
-  UserAlreadyExists,
-  WrongPasswordOrEmail,
-} from 'src/common';
+import { UserRole } from '@prisma/client';
+import { RegisterDto, RegisterResponseDto } from 'src/auth/dto/register.dto';
+import { LoginDto, LoginResponseDto } from 'src/auth/dto/login.dto';
+import { NotAllowed, UserAlreadyExists, WrongPasswordOrEmail } from 'src/common';
 import { compare, hash } from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { TaskService } from './task.service';
 import { Request } from 'express';
+import { TaskService } from 'src/task/task.service';
+
+const { COOKIE_EXPIRE_MS } = process.env;
+const cookieExpTime = parseInt(COOKIE_EXPIRE_MS!);
 
 @Injectable()
-export class UserService {
+export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
     private taskService: TaskService,
   ) {}
 
-  // Admin
-  async getAll(user: User): Promise<User[]> {
-    if (user.role !== UserRole.ADMIN) {
-      throw new NotAllowed('Only admins can access this route');
-    }
-
-    const allUsers = await this.prisma.user.findMany();
-
-    return allUsers;
-  }
-
-  async adminRegister(
-    body: RegisterDto,
-    req: Request,
-  ): Promise<RegisterResponseDto> {
+  async adminRegister(body: RegisterDto, req: Request): Promise<RegisterResponseDto> {
     const { fullName, email, password } = body;
 
     const isUserExist = await this.prisma.user.findFirst({
@@ -59,19 +44,16 @@ export class UserService {
     });
 
     const accessToken = this.jwtService.sign(
-      { sub: user.id, email: user.email },
-      { expiresIn: '15m' },
+      { sub: user.id },
+      { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN },
     );
-    const refreshToken = this.jwtService.sign(
-      { sub: user.id, email: user.email },
-      { expiresIn: '7d' },
-    );
+    const refreshToken = this.jwtService.sign({ sub: user.id });
 
     await this.prisma.userSession.create({
       data: {
         userId: user.id,
         refreshToken,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+        expiresAt: new Date(Date.now() + cookieExpTime),
         userAgent: req.headers['user-agent'] || null,
         ipAddress: req.ip || req.socket.remoteAddress || null,
       },
@@ -94,11 +76,7 @@ export class UserService {
     };
   }
 
-  // User
-  async register(
-    newUser: RegisterDto,
-    req: Request,
-  ): Promise<RegisterResponseDto> {
+  async register(newUser: RegisterDto, req: Request): Promise<RegisterResponseDto> {
     const { fullName, email, password } = newUser;
 
     const isUserExist = await this.prisma.user.findFirst({
@@ -121,20 +99,16 @@ export class UserService {
     });
 
     const accessToken = this.jwtService.sign(
-      { sub: user.id, email: user.email },
-      { expiresIn: '15m' },
+      { sub: user.id },
+      { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN },
     );
-
-    const refreshToken = this.jwtService.sign(
-      { sub: user.id, email: user.email },
-      { expiresIn: '7d' },
-    );
+    const refreshToken = this.jwtService.sign({ sub: user.id });
 
     await this.prisma.userSession.create({
       data: {
         userId: user.id,
         refreshToken,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+        expiresAt: new Date(Date.now() + cookieExpTime),
         userAgent: req.headers['user-agent'] || null,
         ipAddress: req.ip || req.socket.remoteAddress || null,
       },
@@ -169,20 +143,16 @@ export class UserService {
     }
 
     const accessToken = this.jwtService.sign(
-      { sub: user.id, email: user.email },
-      { expiresIn: '15m' },
+      { sub: user.id },
+      { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN },
     );
-
-    const refreshToken = this.jwtService.sign(
-      { sub: user.id, email: user.email },
-      { expiresIn: '7d' },
-    );
+    const refreshToken = this.jwtService.sign({ sub: user.id });
 
     await this.prisma.userSession.create({
       data: {
         userId: user.id,
         refreshToken,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+        expiresAt: new Date(Date.now() + cookieExpTime),
         userAgent: req.headers['user-agent'] || null,
         ipAddress: req.ip || req.socket.remoteAddress || null,
       },
@@ -213,20 +183,16 @@ export class UserService {
       const user = session.user;
 
       const newAccessToken = this.jwtService.sign(
-        { sub: user.id, email: user.email },
-        { expiresIn: '15m' },
+        { sub: user.id },
+        { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN },
       );
-
-      const newRefreshToken = this.jwtService.sign(
-        { sub: user.id, email: user.email },
-        { expiresIn: '7d' },
-      );
+      const newRefreshToken = this.jwtService.sign({ sub: user.id });
 
       await this.prisma.userSession.update({
         where: { refreshToken },
         data: {
           refreshToken: newRefreshToken,
-          expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+          expiresAt: new Date(Date.now() + cookieExpTime),
         },
       });
 

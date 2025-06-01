@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNotEmpty } from '@nestjs/class-validator';
+import { IsString } from '@nestjs/class-validator';
 import { IsEnum, IsOptional } from 'class-validator';
 import { TaskStatus } from '@prisma/client';
 
