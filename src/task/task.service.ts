@@ -1,7 +1,7 @@
-import { Injectable, Req } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Task, User } from '@prisma/client';
-import { CreateTaskDto } from 'src/models/task/create-task.dto';
+import { CreateTaskDto } from 'src/task/dto/create-task.dto';
 import { NotAllowed, TaskAlreadyExists, TaskNotFound } from 'src/common';
 import { TaskStatus } from '@prisma/client';
 
