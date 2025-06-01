@@ -112,16 +112,20 @@ export class AuthController {
 
   @Post('/refresh')
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const token = req.cookies[TOKEN_NAME!];
+    try {
+      const token = req.cookies[TOKEN_NAME!];
 
-    if (!token) throw new BadRequestException('No refresh token in cookies');
+      if (!token) throw new BadRequestException('No refresh token in cookies');
 
-    const data = await this.userService.refresh(token);
+      const data = await this.userService.refresh(token);
 
-    res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
+      res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
 
-    const { accessToken } = data;
+      const { accessToken } = data;
 
-    return { accessToken };
+      return { accessToken };
+    } catch (error) {
+      console.error('Error while execution auth.controller.ts:', error);
+    }
   }
 }
