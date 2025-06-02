@@ -5,7 +5,6 @@ import googleOauthConfig from '../config/google-oauth-config';
 import { ConfigType } from '@nestjs/config';
 import { VerifiedCallback } from 'passport-jwt';
 import { AuthService } from '../auth.service';
-import { User } from '@prisma/client';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
@@ -19,6 +18,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       callbackURL: googleConfiguration.callBackURL!,
       scope: ['email', 'profile'],
     });
+    console.log({ googleConfiguration });
   }
 
   async validate(accessToken: string, refreshToken: string, profile: any, done: VerifiedCallback) {
