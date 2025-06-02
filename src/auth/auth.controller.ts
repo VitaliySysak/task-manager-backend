@@ -16,7 +16,7 @@ import { LoginDto } from 'src/auth/dto/login.dto';
 import { Request, Response } from 'express';
 import { GoogleAuthGuard } from './guards/google.auth.guard';
 
-const { BACKEND_ROUTE, DOMAIN_NAME, TOKEN_NAME, COOKIE_EXPIRE_MS } = process.env;
+const { BACKEND_ROUTE, DOMAIN_NAME, TOKEN_NAME, COOKIE_EXPIRE_MS, FRONTEND_URL } = process.env;
 const cookieExpTime = parseInt(COOKIE_EXPIRE_MS!);
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -148,7 +148,7 @@ export class AuthController {
 
       res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
 
-      res.redirect('http://localhost:3000');
+      res.redirect(FRONTEND_URL!);
 
       const { refreshToken, ...rest } = data;
 
