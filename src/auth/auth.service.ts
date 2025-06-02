@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
 import { RegisterDto, RegisterResponseDto } from 'src/auth/dto/register.dto';
@@ -8,6 +8,9 @@ import { compare, hash } from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { TaskService } from 'src/task/task.service';
+import { ConfigType } from '@nestjs/config';
+import { refreshJwtConfig, refreshJwtConfigKey } from './config/refresh-jwt.config';
+import { accessJwtConfig, accessJwtConfigKey } from './config/access-jwt.config';
 
 const { COOKIE_EXPIRE_MS } = process.env;
 const cookieExpTime = parseInt(COOKIE_EXPIRE_MS!);
@@ -16,8 +19,10 @@ const cookieExpTime = parseInt(COOKIE_EXPIRE_MS!);
 export class AuthService {
   constructor(
     private prisma: PrismaService,
-    private jwtService: JwtService,
     private taskService: TaskService,
+    private jwtService: JwtService,
+    @Inject(refreshJwtConfigKey) private readonly refreshConfig: ConfigType<typeof refreshJwtConfig>,
+    @Inject(accessJwtConfigKey) private readonly accessConfig: ConfigType<typeof accessJwtConfig>,
   ) {}
 
   async adminRegister(body: RegisterDto, req: Request): Promise<RegisterResponseDto> {
@@ -43,14 +48,8 @@ export class AuthService {
       data: { fullName, email, password: hashedPassword },
     });
 
-    const accessToken = this.jwtService.sign(
-      { sub: user.id },
-      { expiresIn: process.env.JWT_ACCESS_EXPIRE_IN || '7d' },
-    );
-    const refreshToken = this.jwtService.sign(
-      { sub: user.id },
-      { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN || '2h' },
-    );
+    const refreshToken = this.jwtService.sign({ sub: user.id }, this.refreshConfig);
+    const accessToken = this.jwtService.sign({ sub: user.id }, this.accessConfig);
 
     await this.prisma.userSession.create({
       data: {
@@ -101,14 +100,8 @@ export class AuthService {
       },
     });
 
-    const accessToken = this.jwtService.sign(
-      { sub: user.id },
-      { expiresIn: process.env.JWT_ACCESS_EXPIRE_IN || '7d' },
-    );
-    const refreshToken = this.jwtService.sign(
-      { sub: user.id },
-      { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN || '2h' },
-    );
+    const refreshToken = this.jwtService.sign({ sub: user.id }, this.refreshConfig);
+    const accessToken = this.jwtService.sign({ sub: user.id }, this.accessConfig);
 
     await this.prisma.userSession.create({
       data: {
@@ -148,14 +141,8 @@ export class AuthService {
       throw new WrongPasswordOrEmail('Wrong email or password');
     }
 
-    const accessToken = this.jwtService.sign(
-      { sub: user.id },
-      { expiresIn: process.env.JWT_ACCESS_EXPIRE_IN || '7d' },
-    );
-    const refreshToken = this.jwtService.sign(
-      { sub: user.id },
-      { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN || '2h' },
-    );
+    const refreshToken = this.jwtService.sign({ sub: user.id }, this.refreshConfig);
+    const accessToken = this.jwtService.sign({ sub: user.id }, this.accessConfig);
 
     await this.prisma.userSession.create({
       data: {
@@ -169,8 +156,6 @@ export class AuthService {
 
     return {
       id: user.id,
-      email: user.email,
-      role: user.role,
       accessToken,
       refreshToken,
     };
@@ -178,7 +163,7 @@ export class AuthService {
 
   async refresh(refreshToken: string): Promise<LoginResponseDto> {
     try {
-      this.jwtService.verify(refreshToken);
+      this.jwtService.verify(refreshToken, { secret: this.refreshConfig.secret });
 
       const session = await this.prisma.userSession.findUnique({
         where: { refreshToken },
@@ -191,14 +176,8 @@ export class AuthService {
 
       const user = session.user;
 
-      const newAccessToken = this.jwtService.sign(
-        { sub: user.id },
-        { expiresIn: process.env.JWT_ACCESS_EXPIRE_IN || '7d' },
-      );
-      const newRefreshToken = this.jwtService.sign(
-        { sub: user.id },
-        { expiresIn: process.env.JWT_REFRESH_EXPIRE_IN || '2h' },
-      );
+      const newRefreshToken = this.jwtService.sign({ sub: user.id }, this.refreshConfig);
+      const newAccessToken = this.jwtService.sign({ sub: user.id }, this.accessConfig);
 
       await this.prisma.userSession.update({
         where: { refreshToken },
@@ -210,13 +189,50 @@ export class AuthService {
 
       return {
         id: user.id,
-        email: user.email,
-        role: user.role,
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
       };
     } catch (error) {
       throw new BadRequestException('Cannot refresh accessToken');
     }
+  }
+
+  async validateGoogleUser(googleUser: any) {
+    const user = await this.prisma.user.findFirst({ where: { email: googleUser?.email } });
+    if (user) {
+      return user;
+    }
+    return await this.prisma.user.create({ data: googleUser });
+  }
+
+  async loginWithGoogle(googleUser: any, req) {
+    const { email, password } = googleUser;
+
+    const user = await this.prisma.user.findFirst({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new WrongPasswordOrEmail('Wrong email or password');
+    }
+
+    const refreshToken = this.jwtService.sign({ sub: user.id }, this.refreshConfig);
+    const accessToken = this.jwtService.sign({ sub: user.id }, this.accessConfig);
+
+    await this.prisma.userSession.create({
+      data: {
+        userId: user.id,
+        refreshToken,
+        expiresAt: new Date(Date.now() + cookieExpTime),
+        userAgent: req.headers['user-agent'] || null,
+        ipAddress: req.ip || req.socket.remoteAddress || null,
+      },
+    });
+
+    return {
+      id: user.id,
+      accessToken,
+      refreshToken,
+    };
   }
 }

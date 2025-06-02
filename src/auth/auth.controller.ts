@@ -6,12 +6,15 @@ import {
   InternalServerErrorException,
   Req,
   Res,
+  Get,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from 'src/auth/dto/register.dto';
 import { NotAllowed, UserAlreadyExists, WrongPasswordOrEmail } from 'src/common';
 import { LoginDto } from 'src/auth/dto/login.dto';
 import { Request, Response } from 'express';
+import { GoogleAuthGuard } from './guards/google.auth.guard';
 
 const { BACKEND_ROUTE, DOMAIN_NAME, TOKEN_NAME, COOKIE_EXPIRE_MS } = process.env;
 const cookieExpTime = parseInt(COOKIE_EXPIRE_MS!);
@@ -37,7 +40,7 @@ const cookieOptions: cookieOptions = {
 
 @Controller({ path: '/auth' })
 export class AuthController {
-  constructor(private readonly userService: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post('/admin/register')
   async adminRegister(
@@ -46,7 +49,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     try {
-      const data = await this.userService.adminRegister(body, req);
+      const data = await this.authService.adminRegister(body, req);
 
       res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
 
@@ -65,7 +68,7 @@ export class AuthController {
   @Post('/register')
   async register(@Body() body: RegisterDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     try {
-      const data = await this.userService.register(body, req);
+      const data = await this.authService.register(body, req);
       const { refreshToken, accessToken } = data;
 
       res.cookie(TOKEN_NAME!, refreshToken, cookieOptions);
@@ -84,7 +87,7 @@ export class AuthController {
   @Post('/login')
   async login(@Body() body: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     try {
-      const data = await this.userService.login(body, req);
+      const data = await this.authService.login(body, req);
 
       res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
 
@@ -117,7 +120,7 @@ export class AuthController {
 
       if (!token) throw new BadRequestException('No refresh token in cookies');
 
-      const data = await this.userService.refresh(token);
+      const data = await this.authService.refresh(token);
 
       res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
 
@@ -129,6 +132,29 @@ export class AuthController {
         throw new BadRequestException(error.message);
       }
       console.error('Error while execution auth.controller.ts:', error);
+    }
+  }
+
+  @Get('google/login')
+  @UseGuards(GoogleAuthGuard)
+  async googleLogin() {}
+
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  async googleCallback(@Req() req: Request, @Res({ passthrough: true }) res) {
+    const user = req.user;
+    try {
+      const data = await this.authService.loginWithGoogle(user, req);
+
+      res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
+
+      res.redirect('http://localhost:3000');
+
+      const { refreshToken, ...rest } = data;
+
+      return rest;
+    } catch (error) {
+      console.error('Error while execution auth/googleCallback:', error);
     }
   }
 }

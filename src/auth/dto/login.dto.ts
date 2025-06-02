@@ -27,17 +27,6 @@ export class LoginResponseDto {
   @IsNumber()
   @IsNotEmpty()
   id: number;
-
-  @ApiProperty({ type: String, required: true })
-  @IsString()
-  @IsNotEmpty()
-  @IsEmail()
-  email: string;
-
-  @ApiProperty({ type: String, required: true })
-  @IsString()
-  @IsNotEmpty()
-  role: UserRole;
   
   @ApiProperty({ type: String, required: true })
   @IsString()
