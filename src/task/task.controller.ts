@@ -128,8 +128,9 @@ export class TaskController {
   async deleteCompletedByIds(@Body() body: DeleteTasksDto) {
     try {
       const { ids } = body;
-      const status = await this.taskService.deleteCompletedByIds(ids);
-      return status;
+      const tasksId = await this.taskService.deleteCompletedByIds(ids);
+
+      return { tasksId };
     } catch (error) {
       console.error('Error while execution deleteCompletedByIds:', error);
       throw new InternalServerErrorException();

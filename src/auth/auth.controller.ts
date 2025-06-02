@@ -125,6 +125,9 @@ export class AuthController {
 
       return { accessToken };
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw new BadRequestException(error.message);
+      }
       console.error('Error while execution auth.controller.ts:', error);
     }
   }

@@ -103,13 +103,13 @@ export class TaskService {
     return deletedTask;
   }
 
-  async deleteCompletedByIds(ids: number[]): Promise<{}> {
+  async deleteCompletedByIds(ids: number[]): Promise<number[]> {
     await this.prisma.task.deleteMany({
       where: {
         id: { in: ids },
       },
     });
 
-    return { status: 'success' };
+    return ids;
   }
 }
