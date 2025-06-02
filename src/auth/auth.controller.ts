@@ -149,10 +149,6 @@ export class AuthController {
       res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
 
       res.redirect(FRONTEND_URL!);
-
-      const { refreshToken, ...rest } = data;
-
-      return rest;
     } catch (error) {
       console.error('Error while execution auth/googleCallback:', error);
     }
