@@ -2,7 +2,7 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
 import { RegisterDto, RegisterResponseDto } from 'src/auth/dto/register.dto';
-import { LoginDto, LoginResponseDto } from 'src/auth/dto/login.dto';
+import { GoogleLoginDto, LoginDto, LoginResponseDto } from 'src/auth/dto/login.dto';
 import { NotAllowed, UserAlreadyExists, WrongPasswordOrEmail } from 'src/common';
 import { compare, hash } from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
@@ -11,6 +11,8 @@ import { TaskService } from 'src/task/task.service';
 import { ConfigType } from '@nestjs/config';
 import { refreshJwtConfig, refreshJwtConfigKey } from './config/refresh-jwt.config';
 import { accessJwtConfig, accessJwtConfigKey } from './config/access-jwt.config';
+import { CalendarDto } from './dto/calendar.dto';
+import axios from 'axios';
 
 const { COOKIE_EXPIRE_MS } = process.env;
 const cookieExpTime = parseInt(COOKIE_EXPIRE_MS!);
@@ -197,16 +199,40 @@ export class AuthService {
     }
   }
 
-  async validateGoogleUser(googleUser: any) {
-    const user = await this.prisma.user.findFirst({ where: { email: googleUser?.email } });
-    if (user) {
-      return user;
-    }
-    return await this.prisma.user.create({ data: googleUser });
+  async calendarRefresh(googleCalendarRefreshToken: string) {
+    const params = new URLSearchParams();
+    params.append('client_id', process.env.GOOGLE_ID!);
+    params.append('client_secret', process.env.GOOGLE_SECRET!);
+    params.append('refresh_token', googleCalendarRefreshToken);
+    params.append('grant_type', 'refresh_token');
+
+    const response = (await axios.post('https://oauth2.googleapis.com/token', params)).data;
+
+    return response['access_token'];
   }
 
-  async loginWithGoogle(googleUser: any, req) {
-    const { email, password } = googleUser;
+  async validateGoogleUser(googleUser: GoogleLoginDto) {
+    const { fullName, email, password, googleAccessToken } = googleUser;
+
+    const isExist = await this.prisma.user.findFirst({ where: { email: googleUser.email } });
+    if (isExist) {
+      return isExist;
+    }
+
+    const newUser = await this.prisma.user.create({ data: { fullName, email, password } });
+
+    const initTask = {
+      title: 'task example',
+      description: 'a little description for this task',
+    };
+
+    await this.taskService.create(initTask, newUser);
+
+    return googleUser;
+  }
+
+  async loginWithGoogle(googleUser: GoogleLoginDto, req: Request) {
+    const { email, provider, providerId, googleAccessToken } = googleUser;
 
     const user = await this.prisma.user.findFirst({
       where: { email },
@@ -223,16 +249,28 @@ export class AuthService {
       data: {
         userId: user.id,
         refreshToken,
+        provider,
+        providerId,
+        verified: new Date(),
         expiresAt: new Date(Date.now() + cookieExpTime),
         userAgent: req.headers['user-agent'] || null,
         ipAddress: req.ip || req.socket.remoteAddress || null,
       },
     });
 
-    return {
-      id: user.id,
-      accessToken,
-      refreshToken,
-    };
+    return refreshToken;
+  }
+
+  async loginGoogleCalendar(data: CalendarDto, refreshToken: string) {
+    const { googleCalendarRefreshToken } = data;
+
+    await this.prisma.userSession.update({
+      where: { refreshToken },
+      data: {
+        googleCalendarRefreshToken,
+      },
+    });
+
+    return googleCalendarRefreshToken;
   }
 }

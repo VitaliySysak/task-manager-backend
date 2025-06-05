@@ -1,13 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy } from 'passport-google-oauth20';
-import googleOauthConfig from '../config/google-oauth-config';
+import { Profile, Strategy } from 'passport-google-oauth20';
+import googleOauthConfig from '../config/google-oauth.config';
 import { ConfigType } from '@nestjs/config';
 import { VerifiedCallback } from 'passport-jwt';
 import { AuthService } from '../auth.service';
+import { GoogleLoginDto } from '../dto/login.dto';
 
 @Injectable()
-export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
+export class GoogleAuthStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(
     @Inject(googleOauthConfig.KEY) googleConfiguration: ConfigType<typeof googleOauthConfig>,
     private readonly authService: AuthService,
@@ -18,17 +19,20 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       callbackURL: googleConfiguration.callBackURL!,
       scope: ['email', 'profile'],
     });
-    console.log({ googleConfiguration });
   }
 
-  async validate(accessToken: string, refreshToken: string, profile: any, done: VerifiedCallback) {
-    const { name, emails, photos } = profile;
+  async validate(accessToken: string, refreshToken: string, profile: Profile, done: VerifiedCallback) {
+    if (!profile.name || !profile.emails?.[0]) {
+      throw new Error('Incomplete Google profile data');
+    }
 
-    const userInfo = {
-      email: emails[0].value,
-      fullName: name.givenName + name.familyName,
+    const userInfo: GoogleLoginDto = {
+      fullName: profile.name.givenName + profile.name.familyName,
+      email: profile.emails[0].value,
       password: '',
-      verified: new Date(),
+      provider: profile.provider,
+      providerId: profile.id,
+      googleAccessToken: accessToken,
     };
 
     const user = await this.authService.validateGoogleUser(userInfo);

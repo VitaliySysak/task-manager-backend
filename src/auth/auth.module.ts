@@ -7,8 +7,10 @@ import { ConfigModule } from '@nestjs/config';
 import { refreshJwtConfig } from './config/refresh-jwt.config';
 import { accessJwtConfig } from './config/access-jwt.config';
 import { JwtModule } from '@nestjs/jwt';
-import googleOauthConfig from './config/google-oauth-config';
-import { GoogleStrategy } from './strategies/google.strategy';
+import googleOauthConfig from './config/google-oauth.config';
+import { GoogleAuthStrategy } from './strategies/google-auth.strategy';
+import { GoogleCalendarStrategy } from './strategies/google-calendar.strategy';
+import googleCalendarConfig from './config/google-calendar.config';
 
 @Module({
   imports: [
@@ -18,8 +20,9 @@ import { GoogleStrategy } from './strategies/google.strategy';
     ConfigModule.forFeature(refreshJwtConfig),
     ConfigModule.forFeature(accessJwtConfig),
     ConfigModule.forFeature(googleOauthConfig),
+    ConfigModule.forFeature(googleCalendarConfig),
   ],
   controllers: [AuthController],
-  providers: [AuthService, GoogleStrategy],
+  providers: [AuthService, GoogleAuthStrategy, GoogleCalendarStrategy],
 })
 export class AuthModule {}

@@ -15,12 +15,15 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { TaskService } from '../task/task.service';
-import { CreateTaskDto } from 'src/task/dto/create-task.dto';
+import { CreateGoogleTaskDataDto, CreateGoogleTaskDto, CreateTaskDto } from 'src/task/dto/create-task.dto';
 import { User } from '@prisma/client';
 import { NotAllowed, TaskAlreadyExists, TaskNotFound } from 'src/common';
 import { UpdateTaskDto } from 'src/task/dto/update-task.dto';
 import { FindTasksQueryDto } from 'src/task/dto/find-task.dto';
 import { DeleteTasksDto } from 'src/task/dto/delete-tasks.dto';
+import { Request } from 'express';
+
+const { GOOGLE_CALENDAR_TOKEN_NAME } = process.env;
 
 @Controller({ path: '/tasks' })
 export class TaskController {
@@ -134,6 +137,24 @@ export class TaskController {
     } catch (error) {
       console.error('Error while execution deleteCompletedByIds:', error);
       throw new InternalServerErrorException();
+    }
+  }
+
+  @Post('/create-event')
+  async createWithGoogleEvent(@Body() body: CreateGoogleTaskDataDto, @Req() req: Request & { user: User }) {
+    try {
+      const { user } = req;
+
+      const task = await this.taskService.createWithGoogleEvent(body, user);
+
+      return task;
+    } catch (error) {
+      if (error instanceof TaskAlreadyExists) {
+        throw new ConflictException(error.message);
+      } else {
+        console.error('Error while execution task.controller/create:', error);
+        throw new InternalServerErrorException();
+      }
     }
   }
 }

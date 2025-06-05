@@ -12,11 +12,20 @@ import {
 import { AuthService } from './auth.service';
 import { RegisterDto } from 'src/auth/dto/register.dto';
 import { NotAllowed, UserAlreadyExists, WrongPasswordOrEmail } from 'src/common';
-import { LoginDto } from 'src/auth/dto/login.dto';
+import { GoogleLoginDto, LoginDto } from 'src/auth/dto/login.dto';
 import { Request, Response } from 'express';
 import { GoogleAuthGuard } from './guards/google.auth.guard';
+import { AuthGuard } from '@nestjs/passport';
+import { CalendarDto } from './dto/calendar.dto';
 
-const { BACKEND_ROUTE, DOMAIN_NAME, TOKEN_NAME, COOKIE_EXPIRE_MS, FRONTEND_URL } = process.env;
+const {
+  BACKEND_ROUTE,
+  DOMAIN_NAME,
+  REFRESH_TOKEN_NAME,
+  GOOGLE_CALENDAR_TOKEN_NAME,
+  COOKIE_EXPIRE_MS,
+  FRONTEND_URL,
+} = process.env;
 const cookieExpTime = parseInt(COOKIE_EXPIRE_MS!);
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -51,7 +60,7 @@ export class AuthController {
     try {
       const data = await this.authService.adminRegister(body, req);
 
-      res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
+      res.cookie(REFRESH_TOKEN_NAME!, data.refreshToken, cookieOptions);
 
       const { refreshToken, ...rest } = data;
 
@@ -71,7 +80,7 @@ export class AuthController {
       const data = await this.authService.register(body, req);
       const { refreshToken, accessToken } = data;
 
-      res.cookie(TOKEN_NAME!, refreshToken, cookieOptions);
+      res.cookie(REFRESH_TOKEN_NAME!, refreshToken, cookieOptions);
 
       return { accessToken };
     } catch (error) {
@@ -89,7 +98,7 @@ export class AuthController {
     try {
       const data = await this.authService.login(body, req);
 
-      res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
+      res.cookie(REFRESH_TOKEN_NAME!, data.refreshToken, cookieOptions);
 
       const { refreshToken, ...rest } = data;
 
@@ -108,7 +117,7 @@ export class AuthController {
 
   @Post('/logout')
   async logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie(TOKEN_NAME!, cookieOptions);
+    res.clearCookie(REFRESH_TOKEN_NAME!, cookieOptions);
 
     return { message: 'Logged out successfully' };
   }
@@ -116,13 +125,13 @@ export class AuthController {
   @Post('/refresh')
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     try {
-      const token = req.cookies[TOKEN_NAME!];
+      const token = req.cookies[REFRESH_TOKEN_NAME!];
 
       if (!token) throw new BadRequestException('No refresh token in cookies');
 
       const data = await this.authService.refresh(token);
 
-      res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
+      res.cookie(REFRESH_TOKEN_NAME!, data.refreshToken, cookieOptions);
 
       const { accessToken } = data;
 
@@ -135,6 +144,21 @@ export class AuthController {
     }
   }
 
+  @Get('calendar/refresh')
+  async calendarRefresh(@Req() req: Request, @Res({ passthrough: true }) res) {
+    try {
+      const token = req.cookies[GOOGLE_CALENDAR_TOKEN_NAME!];
+
+      if (!token) throw new BadRequestException('No refresh token in cookies');
+
+      const accessToken = await this.authService.calendarRefresh(token);
+
+      return { accessToken };
+    } catch (error) {
+      console.error('Error while execution auth/googleCalendarCallback:', error);
+    }
+  }
+
   @Get('google/login')
   @UseGuards(GoogleAuthGuard)
   async googleLogin() {}
@@ -142,15 +166,33 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
   async googleCallback(@Req() req: Request, @Res({ passthrough: true }) res) {
-    const user = req.user;
+    const user = req.user as GoogleLoginDto;
     try {
-      const data = await this.authService.loginWithGoogle(user, req);
+      const refreshToken = await this.authService.loginWithGoogle(user, req);
 
-      res.cookie(TOKEN_NAME!, data.refreshToken, cookieOptions);
-
+      res.cookie(REFRESH_TOKEN_NAME!, refreshToken, cookieOptions);
       res.redirect(FRONTEND_URL!);
     } catch (error) {
       console.error('Error while execution auth/googleCallback:', error);
+    }
+  }
+
+  @Get('calendar/connect')
+  @UseGuards(AuthGuard('google-calendar'))
+  async connectCalendar() {}
+
+  @Get('calendar/callback')
+  @UseGuards(AuthGuard('google-calendar'))
+  async googleCalendarCallback(@Req() req: Request, @Res({ passthrough: true }) res) {
+    const token = req.cookies[REFRESH_TOKEN_NAME!];
+    const googleData = req.user as CalendarDto;
+    try {
+      const googleCalendarRefreshToken =
+        await this.authService.loginGoogleCalendar(googleData, token);
+      res.cookie(GOOGLE_CALENDAR_TOKEN_NAME!, googleCalendarRefreshToken, cookieOptions);
+      res.redirect(FRONTEND_URL!);
+    } catch (error) {
+      console.error('Error while execution auth/googleCalendarCallback:', error);
     }
   }
 }
