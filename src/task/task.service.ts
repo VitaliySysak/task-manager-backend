@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Task, User } from '@prisma/client';
 import { CreateGoogleTaskDataDto, CreateGoogleTaskDto, CreateTaskDto } from 'src/task/dto/create-task.dto';
@@ -145,26 +145,26 @@ export class TaskService {
       ? new Date(startEventTime.getTime() + 60 * 60 * 1000)
       : defaultEndTime;
 
-    const googleResponse = (
-      await axios.post(
-        'https://www.googleapis.com/calendar/v3/calendars/primary/events',
-        {
-          summary: title,
-          description,
-          start: {
-            dateTime: (startEventTime ?? defaultStartTime).toISOString(),
-          },
-          end: {
-            dateTime: (endEventTime ?? defaultStandartEndTime).toISOString(),
-          },
+    const googleResponse = await axios.post(
+      'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+      {
+        summary: title,
+        description,
+        start: {
+          dateTime: (startEventTime ?? defaultStartTime).toISOString(),
         },
-        {
-          headers: { Authorization: `Bearer ${taskData.googleAccessToken}` },
+        end: {
+          dateTime: (endEventTime ?? defaultStandartEndTime).toISOString(),
         },
-      )
-    ).data;
+      },
+      {
+        headers: { Authorization: `Bearer ${taskData.googleAccessToken}` },
+      },
+    );
 
-    console.log({ googleResponse });
+    if (googleResponse.status !== 200) {
+      throw new BadRequestException('Error while creating google task');
+    }
 
     return task;
   }

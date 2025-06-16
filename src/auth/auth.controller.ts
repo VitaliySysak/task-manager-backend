@@ -149,8 +149,6 @@ export class AuthController {
     try {
       const token = req.cookies[GOOGLE_CALENDAR_TOKEN_NAME!];
 
-      console.log({ token });
-
       if (!token) throw new BadRequestException('No refresh google-calendar-refresh-token in cookies');
 
       const accessToken = await this.authService.calendarRefresh(token);
