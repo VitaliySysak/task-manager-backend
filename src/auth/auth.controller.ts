@@ -149,12 +149,17 @@ export class AuthController {
     try {
       const token = req.cookies[GOOGLE_CALENDAR_TOKEN_NAME!];
 
-      if (!token) throw new BadRequestException('No refresh token in cookies');
+      console.log({ token });
+
+      if (!token) throw new BadRequestException('No refresh google-calendar-refresh-token in cookies');
 
       const accessToken = await this.authService.calendarRefresh(token);
 
       return { accessToken };
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw new BadRequestException(error.message);
+      }
       console.error('Error while execution auth/googleCalendarCallback:', error);
     }
   }
@@ -173,6 +178,9 @@ export class AuthController {
       res.cookie(REFRESH_TOKEN_NAME!, refreshToken, cookieOptions);
       res.redirect(FRONTEND_URL!);
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw new BadRequestException(error.message);
+      }
       console.error('Error while execution auth/googleCallback:', error);
     }
   }
@@ -187,11 +195,13 @@ export class AuthController {
     const token = req.cookies[REFRESH_TOKEN_NAME!];
     const googleData = req.user as CalendarDto;
     try {
-      const googleCalendarRefreshToken =
-        await this.authService.loginGoogleCalendar(googleData, token);
+      const googleCalendarRefreshToken = await this.authService.loginGoogleCalendar(googleData, token);
       res.cookie(GOOGLE_CALENDAR_TOKEN_NAME!, googleCalendarRefreshToken, cookieOptions);
       res.redirect(FRONTEND_URL!);
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw new BadRequestException(error.message);
+      }
       console.error('Error while execution auth/googleCalendarCallback:', error);
     }
   }
